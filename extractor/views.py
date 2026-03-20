@@ -111,43 +111,46 @@ def calculate(request):
 # -----------------------------
 # GRAPH VIEW (FINAL)
 # -----------------------------
-def graph(request):
+from django.http import HttpResponse
+import matplotlib.pyplot as plt
+import io
+from .models import Experiment
+
+def multi_graph(request):
     data = Experiment.objects.all()
 
     rpm = [d.rpm for d in data]
+    flow = [d.flow_rate for d in data]
     efficiency = [d.efficiency for d in data]
     water = [d.water_conc for d in data]
 
     if len(rpm) == 0:
         return HttpResponse("No data available")
 
-    plt.figure(figsize=(6,4))
+    plt.figure(figsize=(8,6))
 
     # -----------------------------
-    # SCATTER WITH COLOR
+    # GRAPH 1: RPM vs Efficiency
     # -----------------------------
-    sc = plt.scatter(rpm, efficiency, c=water)
-
-    # Color bar
-    plt.colorbar(sc, label="Water Concentration (%)")
+    plt.plot(rpm, efficiency, marker='o', label="RPM vs Efficiency")
 
     # -----------------------------
-    # MAX POINT
+    # GRAPH 2: Flow vs Efficiency
     # -----------------------------
-    max_eff = max(efficiency)
-    index = efficiency.index(max_eff)
-
-    best_rpm = rpm[index]
-
-    plt.scatter(best_rpm, max_eff, s=100)
-    plt.text(best_rpm, max_eff, f"Max\n{best_rpm} RPM")
+    plt.plot(flow, efficiency, marker='x', label="Flow vs Efficiency")
 
     # -----------------------------
-    # LABELS
+    # GRAPH 3: Concentration vs Efficiency
     # -----------------------------
-    plt.xlabel("RPM")
+    plt.plot(water, efficiency, marker='s', label="Conc vs Efficiency")
+
+    # Labels
+    plt.xlabel("Input Parameters")
     plt.ylabel("Efficiency (%)")
-    plt.title("RPM vs Efficiency (with Concentration)")
+    plt.title("Multi-Parameter Efficiency Analysis")
+
+    plt.legend()
+    plt.grid()
 
     buffer = io.BytesIO()
     plt.savefig(buffer, format='png')

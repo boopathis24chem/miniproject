@@ -7,5 +7,5 @@ urlpatterns = [
 
 urlpatterns = [
     path('', views.calculate),
-    path('graph/', views.graph),
+    path('multigraph/', views.multi_graph),
 ]
