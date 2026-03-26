@@ -1,22 +1,114 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Result</title>
+    <title>Extraction Result</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .card {
+            background: white;
+            color: black;
+            padding: 30px;
+            border-radius: 15px;
+            width: 450px;
+            margin: auto;
+            box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            font-weight: 700;
+        }
+
+        .value {
+            font-size: 18px;
+            margin: 8px 0;
+        }
+
+        .eff {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2ecc71;
+        }
+
+        .msg {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #e67e22;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+
+        a:hover {
+            background: #5a67d8;
+        }
+
+        .graph-container {
+            margin-top: 40px;
+        }
+
+        img {
+            margin-top: 15px;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            background: white;
+            padding: 10px;
+        }
+    </style>
 </head>
+
 <body>
 
-<h2>Extraction Results</h2>
+<!-- RESULT CARD -->
+<div class="card">
+    <h2>Extraction Result</h2>
 
-<p><strong>Reynolds Number:</strong> {{ re }}</p>
-<p><strong>Efficiency:</strong> {{ eff }} %</p>
+    <p class="value"><strong>Flow Rate:</strong> {{ flow }} L/min</p>
+    <p class="value"><strong>RPM:</strong> {{ rpm }}</p>
+    <p class="value"><strong>Water Concentration:</strong> {{ water }} %</p>
+    <p class="value"><strong>Acetone Concentration:</strong> {{ acetone }} %</p>
+    <p class="value"><strong>Reynolds Number:</strong> {{ re }}</p>
 
-<h3>{{ msg }}</h3>
+    <p class="eff">Efficiency: {{ eff }} %</p>
 
-<br>
+    <p class="msg">{{ msg }}</p>
 
-<a href="/">🔙 Go Back</a><br><br>
-<h2>Multi Graph Analysis</h2>
-<img src="/multigraph/" width="600">
+    <a href="/">🔙 Go Back</a>
+</div>
+
+<!-- GRAPHS -->
+<div class="graph-container">
+    <h2>Graphs</h2>
+
+    <h3>RPM vs Efficiency</h3>
+    <img src="/rpm_graph/" width="500" alt="RPM Graph">
+
+    <h3>Flow Rate vs Efficiency</h3>
+    <img src="/flow_graph/" width="500" alt="Flow Graph">
+
+    <h3>Water Concentration vs Efficiency</h3>
+    <img src="/water_graph/" width="500" alt="Water Graph">
+
+    <h3>Acetone Concentration vs Efficiency</h3>
+    <img src="/acetone_graph/" width="500" alt="Acetone Graph">
+</div>
 
 </body>
 </html>
