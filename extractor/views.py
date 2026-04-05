@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Agg')   # IMPORTANT for server
+matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 import io
@@ -9,48 +9,52 @@ from django.http import HttpResponse
 from .models import Experiment
 
 
-# -----------------------------
-# MAIN CALCULATION
-# -----------------------------
 def calculate(request):
-
     if request.method == "POST":
         flow = float(request.POST["flow_rate"])
         rpm = int(request.POST["rpm"])
-        water = float(request.POST["water"])
-        acetone = float(request.POST["acetone"])
 
-        # -----------------------------
-        # VALIDATION
-        # -----------------------------
-        total = water + acetone
-        if abs(total - 100) > 0.5:
+        initial_water = float(request.POST["initial_water"])
+        initial_oil = float(request.POST["initial_oil"])
+
+        final_water = float(request.POST["final_water"])
+        final_oil = float(request.POST["final_oil"])
+
+        if abs((initial_water + initial_oil) - 100) > 0.5:
             return render(request, "result.html", {
                 "flow": flow,
                 "rpm": rpm,
-                "water": water,
-                "acetone": acetone,
-                "re": 0,
+                "initial_water": initial_water,
+                "initial_oil": initial_oil,
+                "final_water": final_water,
+                "final_oil": final_oil,
                 "eff": 0,
-                "msg": f"❌ Water + Acetone must be 100% (Now = {total}%)"
+                "msg": "❌ Initial water + oil must be 100%"
             })
 
-        # -----------------------------
-        # CALCULATION
-        # -----------------------------
-        reynolds = flow * rpm * 0.1
+        if abs((final_water + final_oil) - 100) > 0.5:
+            return render(request, "result.html", {
+                "flow": flow,
+                "rpm": rpm,
+                "initial_water": initial_water,
+                "initial_oil": initial_oil,
+                "final_water": final_water,
+                "final_oil": final_oil,
+                "eff": 0,
+                "msg": "❌ Final water + oil must be 100%"
+            })
 
-        base_eff = water / (water + acetone)
-        rpm_effect = (rpm / 2000) * (1 - (rpm / 3000))
-        flow_effect = 1 / (1 + 0.1 * flow)
+        if final_water <= initial_water:
+            efficiency = 0
+        else:
+            base_eff = ((final_water - initial_water) / (100 - initial_water)) * 100
+            rpm_factor = rpm / 2000
+            flow_factor = 1 / (1 + 0.1 * flow)
+            efficiency = base_eff * rpm_factor * flow_factor
 
-        efficiency = base_eff * rpm_effect * flow_effect * 100
         efficiency = round(efficiency, 2)
         efficiency = max(0, min(100, efficiency))
 
-        # -----------------------------
-        # MESSAGE
-        # -----------------------------
         if efficiency < 30:
             msg = "⚠ Very Low efficiency"
         elif efficiency < 60:
@@ -60,9 +64,6 @@ def calculate(request):
         else:
             msg = "🔥 Excellent efficiency"
 
-        # -----------------------------
-        # SUGGESTIONS
-        # -----------------------------
         suggestions = []
 
         if rpm < 1500:
@@ -72,35 +73,32 @@ def calculate(request):
 
         if flow > 8:
             suggestions.append("Reduce Flow Rate")
-        elif flow < 2:
-            suggestions.append("Increase Flow Rate")
 
-        if water < 60:
-            suggestions.append("Increase Water concentration")
+        if final_water < 80:
+            suggestions.append("Improve separation")
 
         if not suggestions:
-            suggestions.append("Need improvement for the Better Efficiency...")
+            suggestions.append("Operating in optimal range")
 
         msg = msg + " | " + ", ".join(suggestions)
 
-        # -----------------------------
-        # SAVE DATA
-        # -----------------------------
         Experiment.objects.create(
             flow_rate=flow,
             rpm=rpm,
-            water_conc=water,
-            acetone_conc=acetone,
-            reynolds=reynolds,
+            initial_water_conc=initial_water,
+            initial_oil_conc=initial_oil,
+            final_water_conc=final_water,
+            final_oil_conc=final_oil,
             efficiency=efficiency
         )
 
         return render(request, "result.html", {
             "flow": flow,
             "rpm": rpm,
-            "water": water,
-            "acetone": acetone,
-            "re": reynolds,
+            "initial_water": initial_water,
+            "initial_oil": initial_oil,
+            "final_water": final_water,
+            "final_oil": final_oil,
             "eff": efficiency,
             "msg": msg
         })
@@ -108,12 +106,8 @@ def calculate(request):
     return render(request, "form.html")
 
 
-# -----------------------------
-# GRAPH TEMPLATE FUNCTION
-# -----------------------------
 def generate_graph(x, y, xlabel, title):
     fig, ax = plt.subplots()
-
     ax.scatter(x, y)
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Efficiency (%)")
@@ -123,66 +117,29 @@ def generate_graph(x, y, xlabel, title):
     buffer = io.BytesIO()
     fig.savefig(buffer, format='png')
     plt.close(fig)
-
     buffer.seek(0)
     return buffer
 
 
-# -----------------------------
-# RPM GRAPH
-# -----------------------------
 def rpm_graph(request):
     data = Experiment.objects.all()
     x = [d.rpm for d in data]
     y = [d.efficiency for d in data]
 
     if not x:
-        return HttpResponse("No data available")
+        return HttpResponse("No data")
 
     buffer = generate_graph(x, y, "RPM", "RPM vs Efficiency")
     return HttpResponse(buffer.getvalue(), content_type='image/png')
 
 
-# -----------------------------
-# FLOW GRAPH
-# -----------------------------
 def flow_graph(request):
     data = Experiment.objects.all()
     x = [d.flow_rate for d in data]
     y = [d.efficiency for d in data]
 
     if not x:
-        return HttpResponse("No data available")
+        return HttpResponse("No data")
 
     buffer = generate_graph(x, y, "Flow Rate (L/min)", "Flow vs Efficiency")
-    return HttpResponse(buffer.getvalue(), content_type='image/png')
-
-
-# -----------------------------
-# WATER GRAPH
-# -----------------------------
-def water_graph(request):
-    data = Experiment.objects.all()
-    x = [d.water_conc for d in data]
-    y = [d.efficiency for d in data]
-
-    if not x:
-        return HttpResponse("No data available")
-
-    buffer = generate_graph(x, y, "Water Concentration (%)", "Water vs Efficiency")
-    return HttpResponse(buffer.getvalue(), content_type='image/png')
-
-
-# -----------------------------
-# ACETONE GRAPH
-# -----------------------------
-def acetone_graph(request):
-    data = Experiment.objects.all()
-    x = [d.acetone_conc for d in data]
-    y = [d.efficiency for d in data]
-
-    if not x:
-        return HttpResponse("No data available")
-
-    buffer = generate_graph(x, y, "Acetone Concentration (%)", "Acetone vs Efficiency")
     return HttpResponse(buffer.getvalue(), content_type='image/png')
